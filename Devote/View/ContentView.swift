@@ -10,37 +10,16 @@ import CoreData
 
 struct ContentView: View {
     @State var task: String = ""
+    @State private var showNewTaskItem: Bool = false
     
     @Environment(\.managedObjectContext) private var viewContext
+    
+    @AppStorage("isDarkMode") private var isDarkMode: Bool = false
     
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \Item.timestamp, ascending: true)],
         animation: .default)
     private var items: FetchedResults<Item>
-    
-    private var isButtonDisabled: Bool {
-        task.isEmpty
-    }
-    
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(context: viewContext)
-            newItem.timestamp = Date()
-            newItem.task = task
-            newItem.completion = false
-            newItem.id = UUID()
-            
-            do {
-                try viewContext.save()
-            } catch {
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
-            }
-            
-            task = ""
-            hideKeyboard()
-        }
-    }
     
     private func deleteItems(offsets: IndexSet) {
         withAnimation {
@@ -57,55 +36,81 @@ struct ContentView: View {
     
     var body: some View {
         NavigationView {
-            VStack {
-                VStack(spacing: 16) {
-                    TextField("New task", text: $task)
-                        .padding()
-                        .background(Color(uiColor: UIColor.systemGray6))
-                        .cornerRadius(10)
-                    Button {
-                        addItem()
-                    } label: {
+            ZStack {
+                VStack {
+                    HStack(spacing: 10) {
+                        Text("Devote")
+                            .font(.system(.largeTitle, design: .rounded))
+                            .fontWeight(.heavy)
+                            .padding(.leading, 4)
                         Spacer()
-                        Text("Save")
-                        Spacer()
+                        EditButton()
+                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            .padding(.horizontal, 10)
+                            .frame(minWidth: 70, minHeight: 24)
+                            .background(
+                                Capsule().stroke(Color.white, lineWidth: 2)
+                            )
+                        Button {
+                            isDarkMode.toggle()
+                        } label: {
+                            Image(systemName: isDarkMode ? "moon.circle.fill" : "moon.circle")
+                                .resizable()
+                                .frame(width: 24, height: 24)
+                                .font(.system(.title, design: .rounded))
+                        }
+
                     }
                     .padding()
-                    .font(.headline)
                     .foregroundColor(.white)
-                    .background(isButtonDisabled ? .gray : .pink)
-                    .cornerRadius(10)
-                    .disabled(isButtonDisabled)
+                    Spacer(minLength: 80)
+                    Button {
+                        showNewTaskItem = true
+                    } label: {
+                        Image(systemName: "plus.circle")
+                            .font(.system(size: 30, weight: .semibold, design: .rounded))
+                        Text("New Task")
+                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 15)
+                    .background(LinearGradient(gradient: Gradient(colors: [.pink, .blue]), startPoint: .leading, endPoint: .trailing).clipShape(Capsule()))
+                    .shadow(color: Color(red: 0, green: 0, blue: 0, opacity: 0.25), radius: 8, x: 0.0, y: 4.0)
 
-                }
-                .padding()
-                List {
-                    ForEach(items) { item in
-                        NavigationLink {
-                            Text("Item at \(item.timestamp!, formatter: itemFormatter)")
-                        } label: {
-                            VStack {
-                                Text(item.task ?? "")
-                                    .font(.title)
-                                    .fontWeight(.bold)
-                                Text("Item at \(item.timestamp!, formatter: itemFormatter)")
-                                    .font(.footnote)
-                                    .foregroundColor(.gray)
+                    List {
+                        ForEach(items) { item in
+                            ListRowItemView(item: item)
+                        }
+                        .onDelete(perform: deleteItems)
+                    }
+                    .listStyle(InsetGroupedListStyle())
+                    .shadow(color: Color(red: 0, green: 0, blue: 0, opacity: 0.3), radius: 12)
+                    .padding(.vertical, 0)
+                    .frame(maxWidth: 640)
+                    
+                } //: VStack
+                if showNewTaskItem {
+                    BlankView()
+                        .onTapGesture {
+                            withAnimation {
+                                showNewTaskItem = false
                             }
                         }
-                    }
-                    .onDelete(perform: deleteItems)
+                    NewTaskItemView(isShowing: $showNewTaskItem)
                 }
-            } //: VStack
+            } //: ZStack
+            .onAppear(perform: {
+                UITableView.appearance().backgroundColor = UIColor.clear
+            })
             .navigationTitle("Daily tasks")
             .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-            }
+            .navigationBarHidden(true)
+            .background(BackgroundImageView())
+            .background(backgroundGradient.ignoresSafeArea(.all))
             Text("Select an item")
-        }
+        } //: NavigationView
+        .navigationViewStyle(StackNavigationViewStyle())
     }
     
     
