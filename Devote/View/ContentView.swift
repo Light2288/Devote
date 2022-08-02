@@ -53,6 +53,8 @@ struct ContentView: View {
                             )
                         Button {
                             isDarkMode.toggle()
+                            playSound(sound: "sound-tap", type: "mp3")
+                            feedback.notificationOccurred(.success)
                         } label: {
                             Image(systemName: isDarkMode ? "moon.circle.fill" : "moon.circle")
                                 .resizable()
@@ -66,6 +68,8 @@ struct ContentView: View {
                     Spacer(minLength: 80)
                     Button {
                         showNewTaskItem = true
+                        playSound(sound: "sound-ding", type: "mp3")
+                        feedback.notificationOccurred(.success)
                     } label: {
                         Image(systemName: "plus.circle")
                             .font(.system(size: 30, weight: .semibold, design: .rounded))
@@ -90,8 +94,13 @@ struct ContentView: View {
                     .frame(maxWidth: 640)
                     
                 } //: VStack
+                .blur(radius: showNewTaskItem ? 8.0 : 0.0, opaque: false)
+                .transition(.move(edge: .bottom))
+                .animation(.easeOut(duration: 0.2), value: showNewTaskItem)
                 if showNewTaskItem {
-                    BlankView()
+                    BlankView(
+                        backgroundColor: isDarkMode ? .black : .gray,
+                        backgroundOpacity: isDarkMode ? 0.3 : 0.5)
                         .onTapGesture {
                             withAnimation {
                                 showNewTaskItem = false
@@ -106,7 +115,10 @@ struct ContentView: View {
             .navigationTitle("Daily tasks")
             .navigationBarTitleDisplayMode(.large)
             .navigationBarHidden(true)
-            .background(BackgroundImageView())
+            .background(
+                BackgroundImageView()
+                    .blur(radius: showNewTaskItem ? 8.0 : 0.0, opaque: false)
+            )
             .background(backgroundGradient.ignoresSafeArea(.all))
             Text("Select an item")
         } //: NavigationView
